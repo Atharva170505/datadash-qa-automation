@@ -1,0 +1,27 @@
+{
+  "name": "datadash-qa-automation",
+  "version": "1.0.0",
+  "description": "Automated QA with Playwright for DataDash web-based reports",
+  "main": "playwright-qa.js",
+  "scripts": {
+    "test": "node playwright-qa.js",
+    "qa": "node playwright-qa.js",
+    "install-browsers": "npx playwright install"
+  },
+  "keywords": [
+    "playwright",
+    "qa",
+    "automation",
+    "datadash",
+    "web-scraping"
+  ],
+  "author": "24f1001859@ds.study.iitm.ac.in",
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.40.0",
+    "@playwright/test": "^1.40.0"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}
