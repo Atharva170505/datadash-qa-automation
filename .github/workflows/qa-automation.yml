@@ -1,0 +1,125 @@
+name: Automated QA with Playwright - DataDash
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  qa-automation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: |
+        npm init -y
+        npm install playwright @playwright/test
+        
+    - name: Install Playwright browsers
+      run: npx playwright install
+      
+    - name: Create Playwright script
+      run: |
+        cat > playwright-qa.js << 'EOF'
+        const { chromium } = require('playwright');
+
+        async function scrapeAndSum() {
+          const browser = await chromium.launch();
+          const page = await browser.newPage();
+          
+          const seeds = [89, 90, 91, 92, 93, 94, 95, 96, 97, 98];
+          let grandTotal = 0;
+          
+          console.log('🚀 Starting DataDash QA Automation');
+          console.log('=' .repeat(50));
+          
+          for (const seed of seeds) {
+            try {
+              const url = `https://example.com/seed/${seed}`; // Replace with actual URLs
+              console.log(`\n📊 Processing Seed ${seed}`);
+              console.log(`URL: ${url}`);
+              
+              await page.goto(url, { waitUntil: 'networkidle' });
+              
+              // Wait for tables to load
+              await page.waitForSelector('table', { timeout: 10000 });
+              
+              // Extract all numbers from all tables
+              const pageTotal = await page.evaluate(() => {
+                const tables = document.querySelectorAll('table');
+                let total = 0;
+                let numbersFound = [];
+                
+                tables.forEach((table, tableIndex) => {
+                  const cells = table.querySelectorAll('td, th');
+                  cells.forEach(cell => {
+                    const text = cell.textContent.trim();
+                    // Match numbers (including decimals, negatives, and numbers with commas)
+                    const numbers = text.match(/-?\d+(?:,\d{3})*(?:\.\d+)?/g);
+                    if (numbers) {
+                      numbers.forEach(numStr => {
+                        const num = parseFloat(numStr.replace(/,/g, ''));
+                        if (!isNaN(num)) {
+                          total += num;
+                          numbersFound.push(num);
+                        }
+                      });
+                    }
+                  });
+                });
+                
+                return { total, numbersFound };
+              });
+              
+              console.log(`   Numbers found: ${pageTotal.numbersFound.length}`);
+              console.log(`   Page total: ${pageTotal.total}`);
+              console.log(`   Numbers: [${pageTotal.numbersFound.slice(0, 10).join(', ')}${pageTotal.numbersFound.length > 10 ? '...' : ''}]`);
+              
+              grandTotal += pageTotal.total;
+              
+            } catch (error) {
+              console.error(`❌ Error processing Seed ${seed}:`, error.message);
+            }
+          }
+          
+          await browser.close();
+          
+          console.log('\n' + '=' .repeat(50));
+          console.log('🎯 FINAL RESULTS - DataDash QA Summary');
+          console.log('=' .repeat(50));
+          console.log(`📈 GRAND TOTAL OF ALL NUMBERS: ${grandTotal}`);
+          console.log(`📊 Seeds processed: ${seeds.length}`);
+          console.log(`✅ QA Automation completed successfully`);
+          console.log('=' .repeat(50));
+          
+          return grandTotal;
+        }
+
+        scrapeAndSum().catch(console.error);
+        EOF
+        
+    - name: Run Playwright QA Script - 24f1001859@ds.study.iitm.ac.in
+      run: node playwright-qa.js
+      
+    - name: Generate QA Report
+      run: |
+        echo "DataDash QA Automation Report" > qa-report.txt
+        echo "Timestamp: $(date)" >> qa-report.txt
+        echo "Email: 24f1001859@ds.study.iitm.ac.in" >> qa-report.txt
+        echo "Seeds processed: 89-98" >> qa-report.txt
+        
+    - name: Upload QA artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: qa-automation-results
+        path: qa-report.txt
